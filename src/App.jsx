@@ -10,6 +10,9 @@ import Pesanan from "./pages/Pesanan"; // <-- Ini pintu masuk yang baru kita tam
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 import Promo from "./pages/Promo";
+import AdminProducts from "./pages/AdminProducts";
+import AdminPromos from "./pages/AdminPromos";
+import AdminAccounts from "./pages/AdminAccounts";
 
 function App() {
   return (
@@ -26,6 +29,9 @@ function App() {
           <Route path="catalogue" element={<Catalogue />} />
           <Route path="promo" element={<Promo />} />
           <Route path="pesanan" element={<Pesanan />} />{" "}
+          <Route path="/admin/products" element={<AdminProducts />} />
+          <Route path="/admin/promos" element={<AdminPromos />} />
+          <Route path="/admin/accounts" element={<AdminAccounts />} />
           {/* <-- Ini Rute Pesanannya Bos! */}
         </Route>
 

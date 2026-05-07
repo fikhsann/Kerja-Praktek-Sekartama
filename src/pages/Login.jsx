@@ -1,17 +1,64 @@
 import { useState } from "react";
-import { Package, Mail, Lock, ArrowRight } from "lucide-react";
+import {
+  Package,
+  Mail,
+  Lock,
+  ArrowRight,
+  AlertCircle,
+  Loader2,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "../lib/supabaseClient";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    // TODO: Nanti disambungin ke Supabase Auth
-    // Sementara kalau diklik langsung tembus ke Katalog dulu
-    navigate("/catalogue");
+    setLoading(true);
+    setErrorMsg("");
+
+    // 1. Minta tolong Supabase buat ngecek email & password
+    const { data: authData, error: authError } =
+      await supabase.auth.signInWithPassword({
+        email: email,
+        password: password,
+      });
+
+    if (authError) {
+      setErrorMsg("Email atau kata sandi salah. Silakan coba lagi.");
+      setLoading(false);
+      return; // Berhenti di sini kalau gagal
+    }
+
+    // 2. LOGIKA BARU: Tarik data KTP/Jabatan dari tabel 'profiles'
+    if (authData.user) {
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", authData.user.id)
+        .single(); // Ambil 1 baris aja yang id-nya cocok
+
+      if (profileError) {
+        console.error("Gagal narik role:", profileError);
+        // Kalau terjadi error (misal lupa masukin ke tabel profiles), defaultin jadi sales
+        localStorage.setItem("userRole", "sales");
+      } else {
+        // Simpan jabatan ('admin' atau 'sales') ke memori browser
+        localStorage.setItem("userRole", profileData.role);
+      }
+
+      // Simpan juga info emailnya biar nanti bisa dipajang di Navbar
+      localStorage.setItem("userEmail", authData.user.email);
+
+      // 3. Sukses! Langsung tendang ke halaman Katalog
+      navigate("/catalogue");
+    }
   };
 
   return (
@@ -90,9 +137,17 @@ const Login = () => {
 
           {/* Form */}
           <form onSubmit={handleLogin} className="space-y-5">
+            {/* Box Alert kalau Error */}
+            {errorMsg && (
+              <div className="flex items-start gap-3 p-3 bg-red-50 border border-red-100 rounded-lg text-red-600 text-sm">
+                <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                <p>{errorMsg}</p>
+              </div>
+            )}
+
             <div className="space-y-1.5">
               <label className="text-[12px] font-bold uppercase tracking-wider text-zinc-500">
-                Email Sales
+                Email Akses
               </label>
               <div className="relative">
                 <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
@@ -100,7 +155,7 @@ const Login = () => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="faza.alega@sekartama.com"
+                  placeholder="admin@sekartama.com"
                   className="w-full pl-10 pr-4 py-3 bg-white border border-zinc-200/80 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-zinc-100 focus:border-zinc-300 transition-all placeholder:text-zinc-300 text-zinc-900 font-medium shadow-sm"
                   required
                 />
@@ -135,22 +190,26 @@ const Login = () => {
             <div className="pt-2">
               <button
                 type="submit"
-                className="w-full h-11 bg-zinc-900 text-white rounded-xl text-sm font-bold tracking-wide flex items-center justify-center gap-2 hover:bg-zinc-800 active:scale-[0.98] transition-all shadow-md shadow-zinc-200"
+                disabled={loading}
+                className="w-full h-11 bg-zinc-900 text-white rounded-xl text-sm font-bold tracking-wide flex items-center justify-center gap-2 hover:bg-zinc-800 active:scale-[0.98] transition-all shadow-md shadow-zinc-200 disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                Masuk Sekarang <ArrowRight className="h-4 w-4" />
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" /> Memeriksa
+                    Data...
+                  </>
+                ) : (
+                  <>
+                    Masuk Sekarang <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
               </button>
             </div>
           </form>
 
           {/* Footer Info */}
           <p className="text-center text-[12px] text-zinc-500 font-medium">
-            Belum punya akun?{" "}
-            <a
-              href="#"
-              className="font-bold text-zinc-900 hover:text-indigo-600 underline underline-offset-2 transition-colors"
-            >
-              Hubungi Admin Gudang
-            </a>
+            Sistem Internal Perusahaan.{" "}
           </p>
         </div>
       </div>
