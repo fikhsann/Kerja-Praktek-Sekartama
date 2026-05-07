@@ -1,0 +1,11 @@
+/* 1. Import Font Rubik langsung dari Google Fonts */
+@import url("https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300..900;1,300..900&display=swap");
+
+/* 2. Import Tailwind v4 */
+@import "tailwindcss";
+
+/* 3. Konfigurasi Theme v4 (Pengganti tailwind.config.js) */
+@theme {
+  /* Timpa font bawaan (sans) jadi Rubik */
+  --font-sans: "Rubik", sans-serif;
+}
