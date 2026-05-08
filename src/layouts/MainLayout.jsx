@@ -1,13 +1,9 @@
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import {
-  Package,
-  ShoppingBag,
-  LogOut,
-  Scale,
-  X,
-  CheckCircle2,
-} from "lucide-react";
+import { ShoppingBag, LogOut, Scale, X, CheckCircle2 } from "lucide-react"; // Package gw apus dari sini biar gak menuh-menuhin
 import { useState } from "react";
+
+// 1. IMPORT LOGO LU DI SINI
+import logoSekartama from "../assets/logo-sekartama.png";
 
 const MainLayout = () => {
   const location = useLocation();
@@ -62,10 +58,17 @@ const MainLayout = () => {
       {/* FLOATING NAVBAR */}
       <nav className="fixed top-6 inset-x-0 mx-auto w-[calc(100%-2rem)] max-w-6xl z-40">
         <div className="bg-white/95 backdrop-blur-md border border-zinc-200/80 rounded-full h-16 px-4 md:px-6 flex items-center justify-between shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 bg-zinc-900 text-white rounded-full flex items-center justify-center shadow-sm">
-              <Package className="h-4 w-4" />
-            </div>
+          {/* ============================== */}
+          {/* BAGIAN LOGO KIRI DIUBAH DI SINI */}
+          {/* ============================== */}
+          <div className="flex items-center px-4 gap-3">
+            {/* INI TAG GAMBAR LU */}
+            <img
+              src={logoSekartama}
+              alt="Logo Sekartama"
+              className="h-8 w-auto object-contain"
+            />
+
             <div className="hidden sm:block">
               <h1 className="text-[11px] font-bold tracking-[0.15em] uppercase leading-none">
                 Sekartama
@@ -75,6 +78,7 @@ const MainLayout = () => {
               </p>
             </div>
           </div>
+          {/* ============================== */}
 
           <div className="hidden lg:flex items-center gap-1">
             {commonMenu.map((item) => (

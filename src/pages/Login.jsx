@@ -1,14 +1,11 @@
 import { useState } from "react";
-import {
-  Package,
-  Mail,
-  Lock,
-  ArrowRight,
-  AlertCircle,
-  Loader2,
-} from "lucide-react";
+import { Mail, Lock, ArrowRight, AlertCircle, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
+
+// IMPORT GAMBAR LOGO LU DI SINI BOS!
+// Sesuaikan nama folder dan file png-nya ya
+import logoSekartama from "../assets/logo-sekartama.png";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -69,10 +66,16 @@ const Login = () => {
         <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-zinc-800/50 rounded-full blur-3xl opacity-50"></div>
         <div className="absolute bottom-[-10%] right-[-10%] w-[30rem] h-[30rem] bg-indigo-500/10 rounded-full blur-3xl"></div>
 
-        <div className="relative z-10 flex items-center gap-3">
-          <div className="h-10 w-10 bg-white text-zinc-900 rounded-full flex items-center justify-center shadow-sm">
-            <Package className="h-5 w-5" />
+        <div className="relative z-10 flex items-center gap-4">
+          {/* LOGO VERSI DEKSTOP DI SINI (Dikasih bantalan putih biar gak tabrakan) */}
+          <div className="bg-white/95 p-2.5 rounded-xl shadow-lg border border-white/20">
+            <img
+              src={logoSekartama}
+              alt="Logo Sekartama"
+              className="h-7 w-auto object-contain"
+            />
           </div>
+
           <div className="flex flex-col justify-center">
             <h1 className="text-sm font-bold tracking-[0.15em] text-white uppercase leading-none">
               Sekartama
@@ -104,7 +107,7 @@ const Login = () => {
         </div>
 
         <div className="relative z-10 text-[11px] font-medium text-zinc-500">
-          &copy; {new Date().getFullYear()} UPVC Sekartama Ciater. All rights
+          &copy; {new Date().getFullYear()} CV Sekartama Ciater. All rights
           reserved.
         </div>
       </div>
@@ -115,9 +118,12 @@ const Login = () => {
           {/* Header Form */}
           <div className="space-y-2 text-center lg:text-left">
             <div className="lg:hidden flex items-center justify-center gap-3 mb-8">
-              <div className="h-10 w-10 bg-zinc-900 text-white rounded-full flex items-center justify-center shadow-sm">
-                <Package className="h-5 w-5" />
-              </div>
+              {/* LOGO VERSI MOBILE DI SINI */}
+              <img
+                src={logoSekartama}
+                alt="Logo Sekartama"
+                className="h-10 w-auto object-contain"
+              />
               <div className="flex flex-col justify-center text-left">
                 <h1 className="text-sm font-bold tracking-[0.15em] text-zinc-900 uppercase leading-none">
                   Sekartama
