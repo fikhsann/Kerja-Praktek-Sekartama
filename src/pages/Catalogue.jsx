@@ -4,29 +4,27 @@ import { useOutletContext } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 
 const Catalogue = () => {
-  // Narik fungsi keranjang dan compare dari MainLayout
   const { cartItems, setCartItems, compareItems, setCompareItems } =
     useOutletContext();
 
   const [activeCategory, setActiveCategory] = useState("Semua");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // STATE BARU: Buat nampung data asli dari Supabase
   const [products, setProducts] = useState([]);
 
-  const categories = [
+  // Kategori dinamis dari DB
+  const dynamicCategories = [
     "Semua",
-    "Pintu UPVC",
-    "Jendela UPVC",
-    "Kaca",
-    "Aksesoris",
-  ];
+    ...new Set(products.map((product) => product.category)),
+  ].filter(Boolean);
 
-  // LOGIC REAL-TIME SUPABASE
   useEffect(() => {
-    // 1. Tarik data pas halaman pertama kali dibuka
     const fetchProducts = async () => {
-      const { data, error } = await supabase.from("products").select("*");
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .order("id", { ascending: false });
+
       if (error) {
         console.error("Error narik data produk:", error);
       } else {
@@ -36,30 +34,34 @@ const Catalogue = () => {
 
     fetchProducts();
 
-    // 2. Pasang 'Telinga' buat nguping perubahan data (Real-time Sync)
     const productSubscription = supabase
       .channel("realtime-products")
       .on(
         "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "products" },
+        { event: "*", schema: "public", table: "products" },
         (payload) => {
-          // Timpa produk lama di layar pake data baru dari payload Supabase
-          setProducts((prev) =>
-            prev.map((item) =>
-              item.id === payload.new.id ? payload.new : item,
-            ),
-          );
+          if (payload.eventType === "INSERT") {
+            setProducts((prev) => [payload.new, ...prev]);
+          } else if (payload.eventType === "UPDATE") {
+            setProducts((prev) =>
+              prev.map((item) =>
+                item.id === payload.new.id ? payload.new : item,
+              ),
+            );
+          } else if (payload.eventType === "DELETE") {
+            setProducts((prev) =>
+              prev.filter((item) => item.id !== payload.old.id),
+            );
+          }
         },
       )
       .subscribe();
 
-    // Bersihin telinga pas user pindah halaman biar ga memori bocor
     return () => {
       supabase.removeChannel(productSubscription);
     };
   }, []);
 
-  // Filter produk berdasarkan state 'products' yang asli, bukan dummy lagi
   const filteredProducts = products.filter((product) => {
     const matchCategory =
       activeCategory === "Semua" || product.category === activeCategory;
@@ -70,13 +72,27 @@ const Catalogue = () => {
   });
 
   const handleAddToCart = (product) => {
+    const cart_id = `${product.id}-normal`; // KTP Unik Normal
+
     setCartItems((prevItems) => {
-      const isExist = prevItems.find((item) => item.id === product.id);
-      if (isExist)
+      const isExist = prevItems.find((item) => item.cart_id === cart_id);
+      const totalQtyAllTypes = prevItems
+        .filter((ci) => ci.id === product.id)
+        .reduce((sum, ci) => sum + ci.qty, 0);
+
+      if (isExist) {
+        if (totalQtyAllTypes >= product.stock) return prevItems;
         return prevItems.map((item) =>
-          item.id === product.id ? { ...item, qty: item.qty + 1 } : item,
+          item.cart_id === cart_id ? { ...item, qty: item.qty + 1 } : item,
         );
-      return [...prevItems, { ...product, qty: 1 }];
+      }
+
+      if (totalQtyAllTypes >= product.stock) return prevItems;
+
+      return [
+        ...prevItems,
+        { ...product, cart_id: cart_id, type: "Harga Normal", qty: 1 },
+      ];
     });
   };
 
@@ -84,7 +100,10 @@ const Catalogue = () => {
     setCompareItems((prev) => {
       const isExist = prev.find((item) => item.id === product.id);
       if (isExist) return prev.filter((item) => item.id !== product.id);
-      if (prev.length >= 3) return prev;
+      if (prev.length >= 3) {
+        alert("Maksimal bandingkan 3 produk!");
+        return prev;
+      }
       return [...prev, product];
     });
   };
@@ -101,7 +120,6 @@ const Catalogue = () => {
       </div>
 
       <div className="flex flex-col lg:flex-row gap-8 items-start">
-        {/* Sidebar Filter */}
         <div className="w-full lg:w-64 flex-shrink-0 space-y-6">
           <div className="bg-white border border-zinc-200/80 rounded-xl p-5 shadow-sm">
             <div className="flex items-center justify-between mb-4 pb-4 border-b border-zinc-100">
@@ -109,7 +127,10 @@ const Catalogue = () => {
                 <SlidersHorizontal className="h-4 w-4" /> Filter
               </h3>
               <button
-                onClick={() => setActiveCategory("Semua")}
+                onClick={() => {
+                  setActiveCategory("Semua");
+                  setSearchQuery("");
+                }}
                 className="text-[11px] font-medium text-zinc-400 hover:text-zinc-900"
               >
                 Reset
@@ -119,7 +140,8 @@ const Catalogue = () => {
               <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-3">
                 Kategori Produk
               </p>
-              {categories.map((cat) => (
+
+              {dynamicCategories.map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
@@ -132,7 +154,6 @@ const Catalogue = () => {
           </div>
         </div>
 
-        {/* Area Konten Utama */}
         <div className="flex-1 w-full space-y-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div className="relative w-full sm:max-w-md">
@@ -147,11 +168,14 @@ const Catalogue = () => {
             </div>
           </div>
 
-          {/* Render Produk */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {products.length === 0 ? (
               <div className="col-span-full py-10 text-center text-zinc-500 text-sm">
                 Memuat produk dari database...
+              </div>
+            ) : filteredProducts.length === 0 ? (
+              <div className="col-span-full py-10 text-center text-zinc-500 text-sm">
+                Produk tidak ditemukan.
               </div>
             ) : (
               filteredProducts.map((product) => {
@@ -159,27 +183,35 @@ const Catalogue = () => {
                   (item) => item.id === product.id,
                 );
 
+                // LOGIKA FALLBACK GAMBAR DIPERBAIKI BIAR BEDA-BEDA
+                const getFallbackImage = (cat) => {
+                  if (!cat)
+                    return "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&q=80";
+                  const lowerCat = cat.toLowerCase();
+                  if (lowerCat.includes("pintu"))
+                    return "https://images.unsplash.com/photo-1513694203232-719a280e022f?w=600&q=80";
+                  if (lowerCat.includes("jendela"))
+                    return "https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?w=600&q=80";
+                  if (lowerCat.includes("kaca"))
+                    return "https://images.unsplash.com/photo-1582298681283-8a3070433ba9?w=600&q=80";
+                  return "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&q=80";
+                };
+
                 return (
                   <div
                     key={product.id}
                     className="group flex flex-col bg-white border border-zinc-200/80 rounded-xl overflow-hidden hover:shadow-md hover:border-zinc-300 transition-all"
                   >
-                    {/* BAGIAN GAMBAR YANG DI-UPGRADE */}
                     <div className="aspect-[4/3] bg-zinc-100/50 border-b border-zinc-100 flex items-center justify-center relative overflow-hidden">
                       <img
                         src={
                           product.image_url ||
-                          (product.category === "Pintu UPVC"
-                            ? "https://images.unsplash.com/photo-1513694203232-719a280e022f?w=600&q=80"
-                            : product.category === "Jendela UPVC"
-                              ? "https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?w=600&q=80"
-                              : "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&q=80")
+                          getFallbackImage(product.category)
                         }
                         alt={product.name}
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                       />
                     </div>
-                    {/* END BAGIAN GAMBAR */}
 
                     <div className="p-5 flex flex-col flex-1">
                       <div className="flex justify-between items-start mb-2">
@@ -212,10 +244,15 @@ const Catalogue = () => {
                             <Scale className="h-4 w-4" />
                           </button>
 
-                          {/* TOMBOL PLUS YANG UDAH DIPERBAIKI */}
                           <button
                             onClick={() => handleAddToCart(product)}
-                            className="h-8 w-8 flex items-center justify-center rounded-lg transition-all shadow-sm bg-zinc-900 text-white hover:bg-zinc-800 active:scale-95"
+                            disabled={product.stock <= 0}
+                            className={`h-8 w-8 flex items-center justify-center rounded-lg transition-all shadow-sm ${product.stock <= 0 ? "bg-zinc-300 text-zinc-500 cursor-not-allowed" : "bg-zinc-900 text-white hover:bg-zinc-800 active:scale-95"}`}
+                            title={
+                              product.stock <= 0
+                                ? "Stok Habis"
+                                : "Tambah ke Pesanan"
+                            }
                           >
                             <Plus className="h-4 w-4" />
                           </button>

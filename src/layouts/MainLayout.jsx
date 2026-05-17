@@ -1,6 +1,13 @@
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { ShoppingBag, LogOut, Scale, X, CheckCircle2 } from "lucide-react"; // Package gw apus dari sini biar gak menuh-menuhin
-import { useState } from "react";
+import {
+  ShoppingBag,
+  LogOut,
+  Scale,
+  X,
+  CheckCircle2,
+  ChevronDown, // <-- Ikon panah baru buat dropdown
+} from "lucide-react";
+import { useState, useEffect } from "react";
 
 // 1. IMPORT LOGO LU DI SINI
 import logoSekartama from "../assets/logo-sekartama.png";
@@ -18,6 +25,32 @@ const MainLayout = () => {
   const [compareItems, setCompareItems] = useState([]);
 
   const [isCompareOpen, setIsCompareOpen] = useState(false);
+
+  // ==========================================
+  // LOGIKA BOM WAKTU (SESI 7 HARI)
+  // ==========================================
+  useEffect(() => {
+    const loginTime = localStorage.getItem("loginTimestamp");
+
+    if (loginTime) {
+      const currentTime = new Date().getTime();
+      const timeDifference = currentTime - parseInt(loginTime);
+
+      const sevenDays = 7 * 24 * 60 * 60 * 1000;
+
+      if (timeDifference > sevenDays) {
+        alert(
+          "Sesi Anda telah berakhir setelah 7 hari. Silakan login kembali demi keamanan.",
+        );
+        localStorage.clear();
+        navigate("/login");
+      }
+    } else {
+      localStorage.clear();
+      navigate("/login");
+    }
+  }, [navigate]);
+  // ==========================================
 
   const handleLogout = () => {
     localStorage.clear();
@@ -45,6 +78,7 @@ const MainLayout = () => {
   const adminMenu = [
     { name: "KELOLA PRODUK", path: "/admin/products" },
     { name: "KELOLA PROMO", path: "/admin/promos" },
+    { name: "KELOLA PESANAN", path: "/admin/orders" },
     { name: "KELOLA AKUN", path: "/admin/accounts" },
   ];
 
@@ -53,22 +87,23 @@ const MainLayout = () => {
     if (compareItems.length <= 1) setIsCompareOpen(false);
   };
 
+  // Rumus hitung total QTY
+  const totalCartQty = cartItems.reduce(
+    (total, item) => total + (item.qty || 1),
+    0,
+  );
+
   return (
     <div className="min-h-screen bg-zinc-50 font-sans text-zinc-900 relative">
       {/* FLOATING NAVBAR */}
       <nav className="fixed top-6 inset-x-0 mx-auto w-[calc(100%-2rem)] max-w-6xl z-40">
         <div className="bg-white/95 backdrop-blur-md border border-zinc-200/80 rounded-full h-16 px-4 md:px-6 flex items-center justify-between shadow-sm">
-          {/* ============================== */}
-          {/* BAGIAN LOGO KIRI DIUBAH DI SINI */}
-          {/* ============================== */}
           <div className="flex items-center px-4 gap-3">
-            {/* INI TAG GAMBAR LU */}
             <img
               src={logoSekartama}
               alt="Logo Sekartama"
               className="h-8 w-auto object-contain"
             />
-
             <div className="hidden sm:block">
               <h1 className="text-[11px] font-bold tracking-[0.15em] uppercase leading-none">
                 Sekartama
@@ -78,7 +113,6 @@ const MainLayout = () => {
               </p>
             </div>
           </div>
-          {/* ============================== */}
 
           <div className="hidden lg:flex items-center gap-1">
             {commonMenu.map((item) => (
@@ -95,24 +129,45 @@ const MainLayout = () => {
               </Link>
             ))}
 
+            {/* ========================================= */}
+            {/* MENU ADMIN DIUBAH JADI DROPDOWN DI SINI */}
+            {/* ========================================= */}
             {role === "admin" && (
               <>
-                <div className="w-1 h-1 bg-zinc-300 rounded-full mx-2"></div>
-                {adminMenu.map((item) => (
-                  <Link
-                    key={item.name}
-                    to={item.path}
-                    className={`px-4 py-2 rounded-full text-[11px] font-bold tracking-wider transition-all ${
-                      location.pathname === item.path
+                <div className="w-1.5 h-1.5 bg-zinc-300 rounded-full mx-2"></div>
+
+                <div className="relative group">
+                  <button
+                    className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-bold tracking-wider transition-all ${
+                      location.pathname.includes("/admin")
                         ? "bg-indigo-50 text-indigo-700 border border-indigo-100"
                         : "text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50/50"
                     }`}
                   >
-                    {item.name}
-                  </Link>
-                ))}
+                    ADMIN PANEL
+                    <ChevronDown className="h-3.5 w-3.5 group-hover:rotate-180 transition-transform duration-300" />
+                  </button>
+
+                  {/* Isi Dropdown (Membuka ke bawah saat di-hover) */}
+                  <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-48 bg-white border border-zinc-200/80 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 py-2 flex flex-col z-50 overflow-hidden">
+                    {adminMenu.map((item) => (
+                      <Link
+                        key={item.name}
+                        to={item.path}
+                        className={`px-5 py-3 text-[11px] font-bold tracking-wider transition-colors text-center ${
+                          location.pathname === item.path
+                            ? "text-indigo-600 bg-indigo-50/50"
+                            : "text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50"
+                        }`}
+                      >
+                        {item.name}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
               </>
             )}
+            {/* ========================================= */}
           </div>
 
           <div className="flex items-center gap-3">
@@ -136,9 +191,9 @@ const MainLayout = () => {
                 title="Pesanan / Keranjang"
               >
                 <ShoppingBag className="h-4 w-4" />
-                {cartItems.length > 0 && (
+                {totalCartQty > 0 && (
                   <span className="absolute top-1 right-1 h-3.5 w-3.5 bg-emerald-500 rounded-full flex items-center justify-center text-[8px] text-white font-bold border-2 border-white">
-                    {cartItems.length}
+                    {totalCartQty}
                   </span>
                 )}
               </Link>
@@ -178,9 +233,7 @@ const MainLayout = () => {
         />
       </main>
 
-      {/* ========================================= */}
-      {/* TOMBOL POP-UP MUNCUL DI BAWAH (FLOATING) */}
-      {/* ========================================= */}
+      {/* POP-UP BANDINGKAN */}
       {compareItems.length > 0 && !isCompareOpen && (
         <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 animate-in slide-in-from-bottom-10 fade-in duration-300">
           <button
@@ -195,9 +248,7 @@ const MainLayout = () => {
         </div>
       )}
 
-      {/* ========================================= */}
-      {/* MODAL PERBANDINGAN PRODUK */}
-      {/* ========================================= */}
+      {/* MODAL PERBANDINGAN */}
       {isCompareOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div

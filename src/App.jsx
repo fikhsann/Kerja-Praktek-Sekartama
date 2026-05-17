@@ -13,6 +13,7 @@ import Promo from "./pages/Promo";
 import AdminProducts from "./pages/AdminProducts";
 import AdminPromos from "./pages/AdminPromos";
 import AdminAccounts from "./pages/AdminAccounts";
+import AdminOrders from "./pages/AdminOrders";
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
           <Route path="/admin/products" element={<AdminProducts />} />
           <Route path="/admin/promos" element={<AdminPromos />} />
           <Route path="/admin/accounts" element={<AdminAccounts />} />
+          <Route path="/admin/orders" element={<AdminOrders />} />
           {/* <-- Ini Rute Pesanannya Bos! */}
         </Route>
 
