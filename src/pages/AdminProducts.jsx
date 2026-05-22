@@ -8,19 +8,17 @@ const AdminProducts = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // State Form (Sesuai UI Kiri)
+  // State Form (Ditambah spesifikasi_teknis)
   const [formData, setFormData] = useState({
     name: "",
     category: "Pintu UPVC",
     price: "",
     stock: "",
     image_url: "",
+    spesifikasi_teknis: "",
   });
 
-  // State Khusus Gambar
   const [imageFile, setImageFile] = useState(null);
-
-  // State Khusus Kategori Dinamis
   const [availableCategories, setAvailableCategories] = useState([
     "Pintu UPVC",
     "Jendela UPVC",
@@ -43,8 +41,6 @@ const AdminProducts = () => {
 
     if (!error && data) {
       setProducts(data);
-
-      // Ambil semua kategori yang ada di database, gabungin sama kategori default
       const uniqueCats = [...new Set(data.map((p) => p.category))].filter(
         Boolean,
       );
@@ -93,12 +89,14 @@ const AdminProducts = () => {
     const filePath = `public/${fileName}`;
 
     const { error } = await supabase.storage
-      .from("products")
+      .from("product-images")
       .upload(filePath, file);
 
     if (error) throw error;
 
-    const { data } = supabase.storage.from("products").getPublicUrl(filePath);
+    const { data } = supabase.storage
+      .from("product-images")
+      .getPublicUrl(filePath);
     return data.publicUrl;
   };
 
@@ -113,7 +111,6 @@ const AdminProducts = () => {
         finalImageUrl = await uploadToSupabase(imageFile);
       }
 
-      // Pastikan kategori yang dikirim sesuai dengan inputan (custom atau dropdown)
       const finalCategory = isCustomCategory
         ? customCategoryText
         : formData.category;
@@ -124,6 +121,7 @@ const AdminProducts = () => {
         price: Number(formData.price),
         stock: Number(formData.stock),
         image_url: finalImageUrl,
+        spesifikasi_teknis: formData.spesifikasi_teknis, // Masuk ke database
       };
 
       const { error } = await supabase
@@ -134,18 +132,16 @@ const AdminProducts = () => {
 
       alert("Produk berhasil ditambahkan!");
 
-      // Bersihin form setelah sukses
       setFormData({
         name: "",
         category: "Pintu UPVC",
         price: "",
         stock: "",
         image_url: "",
+        spesifikasi_teknis: "",
       });
       setImageFile(null);
       document.getElementById("file-upload").value = "";
-
-      // Reset State Kategori Custom
       setIsCustomCategory(false);
       setCustomCategoryText("");
 
@@ -172,9 +168,7 @@ const AdminProducts = () => {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       <div className="flex flex-col lg:flex-row gap-6 items-start">
-        {/* ========================================= */}
-        {/* KIRI - FORM TAMBAH PRODUK */}
-        {/* ========================================= */}
+        {/* FORM KIRI */}
         <div className="w-full lg:w-[360px] bg-white border border-zinc-200/80 rounded-2xl p-6 shadow-sm flex-shrink-0">
           <h2 className="text-sm font-bold text-zinc-900 flex items-center gap-2 mb-6">
             <Package className="h-4 w-4" /> Tambah Produk Baru
@@ -197,7 +191,6 @@ const AdminProducts = () => {
               />
             </div>
 
-            {/* AREA KATEGORI DINAMIS */}
             <div>
               <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-1.5">
                 Kategori
@@ -227,7 +220,6 @@ const AdminProducts = () => {
                 </option>
               </select>
 
-              {/* MUNCUL KALAU OPSI TAMBAH BARU DIKLIK */}
               {isCustomCategory && (
                 <input
                   type="text"
@@ -239,6 +231,28 @@ const AdminProducts = () => {
                   className="w-full px-3 py-2 mt-2 text-sm bg-indigo-50/50 border border-indigo-200 rounded-lg outline-none focus:border-indigo-400 transition-all placeholder:text-indigo-300 text-indigo-900"
                 />
               )}
+            </div>
+
+            {/* SPESIFIKASI TEKNIS */}
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-1.5">
+                Spesifikasi Teknis
+              </label>
+              <textarea
+                value={formData.spesifikasi_teknis}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    spesifikasi_teknis: e.target.value,
+                  })
+                }
+                placeholder="Cth: Dimensi:210x80cm, Profil:UPVC Conch, Kaca:5mm"
+                rows="2"
+                className="w-full px-3 py-2 text-sm bg-white border border-zinc-200 rounded-lg outline-none focus:border-zinc-400 transition-all placeholder:text-zinc-300 resize-none"
+              />
+              <p className="text-[9px] text-zinc-400 mt-1">
+                Gunakan format "Label:Isi", pisahkan dengan koma (,).
+              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -301,9 +315,6 @@ const AdminProducts = () => {
                 disabled={!!imageFile}
                 className="w-full px-3 py-2 text-sm bg-white border border-zinc-200 rounded-lg outline-none focus:border-zinc-400 transition-all placeholder:text-zinc-300 disabled:bg-zinc-50 disabled:text-zinc-400"
               />
-              <p className="text-[9px] text-zinc-400 mt-1.5">
-                Kosongkan jika ingin pakai gambar otomatis. (Max File: 2MB).
-              </p>
             </div>
 
             <button
@@ -322,9 +333,7 @@ const AdminProducts = () => {
           </form>
         </div>
 
-        {/* ========================================= */}
-        {/* KANAN - DAFTAR PRODUK */}
-        {/* ========================================= */}
+        {/* TABEL KANAN */}
         <div className="flex-1 w-full bg-white border border-zinc-200/80 rounded-2xl p-6 shadow-sm overflow-hidden">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <h2 className="text-sm font-bold text-zinc-900">
