@@ -325,7 +325,7 @@ const Pesanan = () => {
                 </>
               ) : (
                 <>
-                  Buat Pesanan Sekarang{" "}
+                  Buat Pesanan Cepat{" "}
                   <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
                 </>
               )}
